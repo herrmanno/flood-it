@@ -198,13 +198,7 @@ fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solution>) 
                 solver.assert(&a.implies(b));
 
                 // cluster's color was choosen at t
-                let color_choosen_at_t = Bool::and(
-                    &ctx,
-                    &[
-                        &color_vars[t].le(&Int::from_u64(&ctx, cluster.color as u64)),
-                        &color_vars[t].ge(&Int::from_u64(&ctx, cluster.color as u64)),
-                    ],
-                );
+                let color_choosen_at_t = color_vars[t]._eq(&Int::from_u64(&ctx, cluster.color as u64));
 
                 // any neighbouring cluster was flooded at t
                 let any_neighbour_flooded = {

@@ -8,18 +8,27 @@ use color_flood_rs::solver::solve;
 
 /// External search space limit
 enum TimeParam {
-    // Use binary search to find minimal solution
+    /// Use z3 optimization goal to find minimal solution
+    Optimize,
+    /// Use z3 optimization goal to find minimal solution w/ upper bound
+    OptimizeMax(usize),
+    /// Use binary search to find minimal solution
     Minimize,
-    // Use binary search to find minimal solution in range [lo, hi]
+    /// Use binary search to find minimal solution in range [lo, hi]
     MinMax(usize, usize),
-    // Find solution with fixed size
+    /// Find solution with fixed size
     Time(usize),
+    /// Find solution for reasonable upper bound
     Default,
 }
 
 impl Display for TimeParam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            TimeParam::Optimize => f.write_str("Optimize through z3"),
+            TimeParam::OptimizeMax(hi) => {
+                f.write_fmt(format_args!("Optimize through z3 w/ upper bound {hi}"))
+            }
             TimeParam::Minimize => f.write_str("minimal"),
             TimeParam::MinMax(lo, hi) => f.write_fmt(format_args!("minimal between {lo} and {hi}")),
             TimeParam::Time(time) => f.write_fmt(format_args!("{time}")),
@@ -29,25 +38,42 @@ impl Display for TimeParam {
 }
 
 impl FromStr for TimeParam {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "min" {
-            Ok(TimeParam::Minimize)
-        } else if let Some((lo, hi)) = s
-            .split_once(' ')
-            .and_then(|(a, b)| Some((a.parse::<usize>().ok()?, b.parse::<usize>().ok()?)))
-        {
-            Ok(TimeParam::MinMax(lo, hi))
-        } else if let Ok(time) = s.parse::<usize>() {
-            Ok(TimeParam::Time(time))
-        } else {
-            Ok(TimeParam::Default)
+        let (a, b) = s.split_once(' ').unwrap_or((s, ""));
+
+        match (a, b) {
+            ("", "") => Ok(TimeParam::Default),
+            ("opt", "") => Ok(TimeParam::Optimize),
+            ("opt", b) => {
+                if let Ok(hi) = b.parse::<usize>() {
+                    Ok(TimeParam::OptimizeMax(hi))
+                } else {
+                    Err(format!("Expected number. Got {b}"))
+                }
+            }
+            ("min", _) => Ok(TimeParam::Minimize),
+            (a, "") => {
+                if let Ok(exact) = a.parse::<usize>() {
+                    Ok(TimeParam::Time(exact))
+                } else {
+                    Err(format!("Expected number. Got {a}"))
+                }
+            }
+            (a, b) => match (a.parse(), b.parse()) {
+                (Ok(lo), Ok(hi)) => Ok(TimeParam::MinMax(lo, hi)),
+                (Err(a), _) => Err(format!("Expected number. Got {a}")),
+                (_, Err(b)) => Err(format!("Expected number. Got {b}")),
+            },
         }
     }
 }
 
 fn main() {
+    /* TODO:
+     * try to calculate longest (0,0) - cluster path upfront to use as lower bound
+     */
     let instance = Problem::from_stdin();
     let t_max: TimeParam = {
         let args = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
@@ -66,6 +92,8 @@ fn main() {
 
     let num_clusters = Cluster::from_problem(&instance).len();
     let (result, solution) = match (t_max, 0, num_clusters) {
+        (TimeParam::Optimize, _, _) => solve(&instance, num_clusters, true),
+        (TimeParam::OptimizeMax(hi), _, _) => solve(&instance, hi, true),
         // do binary search to find best solution
         (TimeParam::Minimize, lo, hi) | (TimeParam::MinMax(lo, hi), _, _) => {
             let mut lo = lo;
@@ -73,7 +101,7 @@ fn main() {
             let mut ret = (z3::SatResult::Unknown, None);
             loop {
                 let t = (hi + lo) / 2;
-                let tmp = solve(&instance, t);
+                let tmp = solve(&instance, t, false);
                 match tmp.0 {
                     z3::SatResult::Unsat => {
                         lo = t + 1;
@@ -96,8 +124,8 @@ fn main() {
                 }
             }
         }
-        (TimeParam::Time(time), _, _) => solve(&instance, time),
-        (TimeParam::Default, _, _) => solve(&instance, num_clusters),
+        (TimeParam::Time(time), _, _) => solve(&instance, time, false),
+        (TimeParam::Default, _, _) => solve(&instance, num_clusters, false),
     };
 
     println!("{result:?}");
@@ -105,5 +133,7 @@ fn main() {
     if let Some(solution) = solution {
         println!("{}", solution);
         printer::print_solution(&instance, &solution);
+    } else {
+        println!("Could not extract solution");
     }
 }

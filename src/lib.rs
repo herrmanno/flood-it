@@ -1,5 +1,5 @@
 //! # Solver for the 'flood it' puzzle
-//! 
+//!
 //! The following text is a short overview of the concept of modelling the 'Flood it' puzzle as
 //! a SMT problem.
 //!

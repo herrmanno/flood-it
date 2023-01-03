@@ -19,8 +19,12 @@ impl Display for Solution {
     }
 }
 
-impl From<Vec<Color>> for Solution {
-    fn from(colors: Vec<Color>) -> Self {
+impl<T> From<T> for Solution
+where
+    T: AsRef<[Color]>,
+{
+    fn from(colors: T) -> Self {
+        let colors = colors.as_ref().to_vec();
         Self { colors }
     }
 }

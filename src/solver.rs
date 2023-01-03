@@ -9,9 +9,19 @@ use crate::{
 };
 
 /// Try to solve the given [problem][Problem] in `t_max` steps
-pub fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solution>) {
+///
+/// # Args
+/// - `instance` the problem to solve
+/// - `t_max` the length of the solution to search for
+/// - `optimize` if z3 should optimize for a minimal solution
+///     - if `true`, `t_max` behaves as upper bound
+///     - if `false`, `t_max` behaves as exact length constraint
+pub fn solve(
+    instance: &Problem,
+    t_max: usize,
+    optimize: bool,
+) -> (z3::SatResult, Option<Solution>) {
     /* TODO: IMPROVEMENTS
-        - add 'no two adjacent colors can be equals' constraint
         - calculate color-path length for furthest cluster
             - use as lower bound
         - try z3::optimize to optimize flood_vars
@@ -19,7 +29,7 @@ pub fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solutio
 
     // INIT SOLVER
     let ctx = z3::Context::new(&Default::default());
-    let solver = z3::Solver::new(&ctx);
+    let solver = z3::Optimize::new(&ctx);
 
     // INIT COLOR VARS
     let color_vars: Vec<Int> = (0..t_max)
@@ -121,13 +131,61 @@ pub fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solutio
         }
     }
 
+    if optimize {
+        let optimization_goal = {
+            let nums: Vec<_> = (0..=t_max)
+                .into_iter()
+                .map(|t| {
+                    let flooded_vars_t: Vec<_> = flooded_vars.iter().map(|vars| &vars[t]).collect();
+                    let all_flooded_t = Bool::and(&ctx, flooded_vars_t.as_slice());
+                    all_flooded_t.ite(&Int::from_u64(&ctx, 1), &Int::from_u64(&ctx, 0))
+                })
+                .collect();
+
+            Int::add(&ctx, nums.iter().collect::<Vec<_>>().as_slice())
+        };
+
+        solver.maximize(&optimization_goal);
+    } else {
+        let flooding_at_t_minus_one: Vec<_> =
+            flooded_vars.iter().map(|vars| &vars[t_max - 1]).collect();
+        let not_all_flooded_at_t_minus_one = Bool::and(&ctx, &flooding_at_t_minus_one).not();
+        solver.assert(&not_all_flooded_at_t_minus_one);
+    }
+
     println!("Starting z3 (max steps: {t_max})...");
 
-    match solver.check() {
+    match solver.check(&[]) {
         z3::SatResult::Unsat => (z3::SatResult::Unsat, None),
         z3::SatResult::Unknown => (z3::SatResult::Unknown, None),
         z3::SatResult::Sat => {
             if let Some(model) = solver.get_model() {
+                let flood_model: Vec<Vec<_>> = flooded_vars
+                    .iter()
+                    .map(|vars| {
+                        vars.iter()
+                            .map(|var| {
+                                model
+                                    .eval(var, false)
+                                    .and_then(|b| b.as_bool())
+                                    .expect("Could not read flood var value from model")
+                            })
+                            .collect()
+                    })
+                    .collect();
+
+                let solution_length = (0..flood_model.len())
+                    .into_iter()
+                    .position(|i| {
+                        flood_model
+                            .iter()
+                            .map(|vars| vars[i])
+                            .all(|flooded| flooded)
+                    })
+                    .unwrap_or(t_max);
+
+                println!("Solution length: {}", solution_length);
+
                 let color_model = (0..t_max)
                     .into_iter()
                     .map(|idx| {
@@ -139,7 +197,7 @@ pub fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solutio
                     .collect::<Option<Vec<Color>>>();
 
                 if let Some(colors) = color_model {
-                    let solution = Solution::from(colors);
+                    let solution = Solution::from(&colors[0..solution_length]);
                     (z3::SatResult::Sat, Some(solution))
                 } else {
                     (z3::SatResult::Sat, None)

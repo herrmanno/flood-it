@@ -18,7 +18,20 @@ cargo build --release
 
 ## Usage
 
-### Find solution w/ n = #clusters
+Note: when not using one of the `opt` modes a solution with the *exact length* of `n` steps is
+searched for. This may lead to a solution with multiple no-op moves.
+
+### Find optimal solution
+```sh
+./target/release/color-flood-rs opt < input.txt
+```
+
+### Find optimal solution w/ upper bound
+```sh
+./target/release/color-flood-rs opt [hi] < input.txt
+```
+
+### Find solution w/ length = #clusters
 ```sh
 ./target/release/color-flood-rs < input.txt
 ```
@@ -33,7 +46,7 @@ cargo build --release
 ./target/release/color-flood-rs [lo] [hi] < input.txt
 ```
 
-### Find solution with fixed number of steps
+### Find solution with exact number of steps
 ```sh
 ./target/release/color-flood-rs [steps] < input.txt
 ```

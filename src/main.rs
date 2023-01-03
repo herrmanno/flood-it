@@ -18,6 +18,7 @@ enum TimeParam {
     MinMax(usize, usize),
     // Find solution with fixed size
     Time(usize),
+    Default,
 }
 
 impl Display for TimeParam {
@@ -26,6 +27,7 @@ impl Display for TimeParam {
             TimeParam::Minimize => f.write_str("minimal"),
             TimeParam::MinMax(lo, hi) => f.write_fmt(format_args!("minimal between {lo} and {hi}")),
             TimeParam::Time(time) => f.write_fmt(format_args!("{time}")),
+            TimeParam::Default => f.write_str("default (# of clusters)"),
         }
     }
 }
@@ -44,40 +46,30 @@ impl FromStr for TimeParam {
         } else if let Ok(time) = s.parse::<usize>() {
             Ok(TimeParam::Time(time))
         } else {
-            Err(())
+            Ok(TimeParam::Default)
         }
     }
 }
 
 fn main() {
     let instance = Problem::from_stdin();
-    let height = instance.height();
-    let width = instance.width();
-    let num_colors = *instance
-        .grid
-        .iter()
-        .flat_map(|row| row.iter())
-        .max()
-        .unwrap()
-        + 1;
     let t_max: TimeParam = {
         let args = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
-        args.parse::<TimeParam>()
-            .ok()
-            .unwrap_or(TimeParam::Time(height + width))
+        args.parse::<TimeParam>().unwrap()
     };
 
     println!(
         "Size: {} x {}\nColors: {}\nSteps: {}",
         instance.height(),
         instance.width(),
-        num_colors,
+        instance.num_colors(),
         t_max
     );
 
     println!("{}", instance);
 
-    let (result, solution) = match (t_max, 0, instance.width() * instance.height()) {
+    let num_clusters = construct_clusters(&instance).len();
+    let (result, solution) = match (t_max, 0, num_clusters) {
         // do binary search to find best solution
         (TimeParam::Minimize, lo, hi) | (TimeParam::MinMax(lo, hi), _, _) => {
             let mut lo = lo;
@@ -109,6 +101,7 @@ fn main() {
             }
         }
         (TimeParam::Time(time), _, _) => solve(&instance, time),
+        (TimeParam::Default, _, _) => solve(&instance, num_clusters),
     };
 
     println!("{result:?}");
@@ -198,12 +191,12 @@ fn solve(instance: &Problem, t_max: usize) -> (z3::SatResult, Option<Solution>) 
                 solver.assert(&a.implies(b));
 
                 // cluster's color was choosen at t
-                let color_choosen_at_t = color_vars[t]._eq(&Int::from_u64(&ctx, cluster.color as u64));
+                let color_choosen_at_t =
+                    color_vars[t]._eq(&Int::from_u64(&ctx, cluster.color as u64));
 
                 // any neighbouring cluster was flooded at t
                 let any_neighbour_flooded = {
                     let constraints = neighbour_indices.iter().map(|idx| &flooded_vars[*idx][t]);
-
                     Bool::or(&ctx, constraints.collect::<Vec<_>>().as_slice())
                 };
 

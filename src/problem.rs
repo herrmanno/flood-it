@@ -1,4 +1,7 @@
-use crate::{colorizer::Colorizer, util::neighbours};
+use crate::{
+    colorizer::Colorizer,
+    util::{neighbours, Point},
+};
 use std::{collections::HashSet, fmt::Display};
 
 /// A number denoting a color (by index)
@@ -76,9 +79,9 @@ impl Problem {
     pub fn apply_color(&mut self, color: Color) {
         let curr_color = self.grid[0][0];
 
-        let mut current_cluster: HashSet<(u8, u8)> = Default::default();
+        let mut current_cluster: HashSet<Point> = Default::default();
 
-        let mut queue: Vec<(u8, u8)> = vec![(0, 0)];
+        let mut queue: Vec<Point> = vec![(0, 0)];
         while let Some(pos @ (y, x)) = queue.pop() {
             if !current_cluster.insert(pos) {
                 continue;

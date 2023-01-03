@@ -38,6 +38,13 @@ cargo build --release
 ./target/release/color-flood-rs [steps] < input.txt
 ```
 
+## Documentation
+
+Documentation can be build and watched via
+```shell
+cargo doc --open
+```
+
 ## Input format
 
 Problem instances must be formated as ASCII text, where each line, separated by a newline character,

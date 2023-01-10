@@ -71,9 +71,6 @@ impl FromStr for TimeParam {
 }
 
 fn main() {
-    /* TODO:
-     * try to calculate longest (0,0) - cluster path upfront to use as lower bound
-     */
     let instance = Problem::from_stdin();
     let t_max: TimeParam = {
         let args = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
@@ -90,9 +87,25 @@ fn main() {
 
     println!("{}", instance);
 
-    let num_clusters = Cluster::from_problem(&instance).len();
-    let (result, solution) = match (t_max, 0, num_clusters) {
-        (TimeParam::Optimize, _, _) => solve(&instance, num_clusters, true),
+    // min { 2n + (√2c)n + c, c * (n − 1) } ⋃ { #clusters }
+    // See https://arxiv.org/pdf/1001.4420.pdf #Section_6
+    let max_moves = {
+        let num_clusters = Cluster::from_problem(&instance).len();
+        let n = instance.height();
+        let c = instance.num_colors();
+        [
+            num_clusters,
+            // upper bound
+            c * (n - 1),
+            // asymptotic upper bound
+            2 * n + c + ((2 * c) as f32).sqrt().ceil() as usize * n,
+        ]
+        .into_iter()
+        .min()
+        .unwrap()
+    };
+    let (result, solution) = match (t_max, 0, max_moves) {
+        (TimeParam::Optimize, _, _) => solve(&instance, max_moves, true),
         (TimeParam::OptimizeMax(hi), _, _) => solve(&instance, hi, true),
         // do binary search to find best solution
         (TimeParam::Minimize, lo, hi) | (TimeParam::MinMax(lo, hi), _, _) => {
@@ -125,15 +138,17 @@ fn main() {
             }
         }
         (TimeParam::Time(time), _, _) => solve(&instance, time, false),
-        (TimeParam::Default, _, _) => solve(&instance, num_clusters, false),
+        (TimeParam::Default, _, _) => solve(&instance, max_moves, false),
     };
 
     println!("{result:?}");
 
-    if let Some(solution) = solution {
-        println!("{}", solution);
-        printer::print_solution(&instance, &solution);
-    } else {
-        println!("Could not extract solution");
+    if result == z3::SatResult::Sat {
+        if let Some(solution) = solution {
+            println!("{}", solution);
+            printer::print_solution(&instance, &solution);
+        } else {
+            println!("Could not extract solution");
+        }
     }
 }

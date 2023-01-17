@@ -84,7 +84,6 @@ time.
 |14x14         |0.4s          |0.6s        |0.7s        |
 |18x18         |5.5s          |16s         |10s         |
 |20x20         |13s           |2h          |>3h         |
-|-------------:|-------------:|-----------:|-----------:|
 
 Further documentation can be build and viewed via
 ```shell

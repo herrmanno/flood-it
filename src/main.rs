@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use color_flood_rs::cli::{Args};
+use color_flood_rs::cli::Args;
 use color_flood_rs::cluster::*;
 use color_flood_rs::printer;
 use color_flood_rs::problem::*;
@@ -52,8 +52,13 @@ fn main() {
 }
 
 /// Solves an instance via optimization or by performing binary search over the solution length
-fn solve<'c, T>(ctx: &'c z3::Context, instance: &Problem, args: &Args) -> Option<(z3::SatResult, Option<Solution>)>
-where T: Solver<'c>
+fn solve<'c, T>(
+    ctx: &'c z3::Context,
+    instance: &Problem,
+    args: &Args,
+) -> Option<(z3::SatResult, Option<Solution>)>
+where
+    T: Solver<'c>,
 {
     let action = args.get_action();
     let optimize = action.use_optimizer();

@@ -1,5 +1,5 @@
 //! General solving routine for the 'Flood it' puzzle
-//! 
+//!
 //! # Example
 //! ```
 //! let instance = Problem::from_stdin();
@@ -42,7 +42,7 @@ impl<'ctx> Solver<'ctx> for z3::Solver<'ctx> {
     }
 
     fn assert(&self, ast: &z3::ast::Bool) {
-       self.assert(ast)
+        self.assert(ast)
     }
 
     fn check(&self) -> z3::SatResult {
@@ -64,7 +64,7 @@ impl<'ctx> Solver<'ctx> for z3::Optimize<'ctx> {
     }
 
     fn assert(&self, ast: &z3::ast::Bool) {
-       self.assert(ast)
+        self.assert(ast)
     }
 
     fn check(&self) -> z3::SatResult {
@@ -90,7 +90,7 @@ struct Model<'a> {
 pub struct SolverState<'ctx, T> {
     solver: T,
     model: Model<'ctx>,
-    asserts: Vec<z3::ast::Bool<'ctx>>
+    asserts: Vec<z3::ast::Bool<'ctx>>,
 }
 
 impl<'ctx, T> SolverState<'ctx, T> {
@@ -156,10 +156,7 @@ pub fn init_solver<'ctx, T: Solver<'ctx>>(
         for cluster_idx in 0..clusters.len() {
             let mut v = vec![];
             for t in 0..=t_max {
-                v.push(Bool::new_const(
-                    ctx,
-                    format!("f_{cluster_idx}_{t}"),
-                ));
+                v.push(Bool::new_const(ctx, format!("f_{cluster_idx}_{t}")));
             }
             vars.push(v);
         }
@@ -229,9 +226,7 @@ pub fn init_solver<'ctx, T: Solver<'ctx>>(
                 };
 
                 // neighbour was flooded at t + color was choosen at t -> cluster is flooded at t + 1
-                assert(
-                    &Bool::and(ctx, &[&any_neighbour_flooded, &color_choosen_at_t]).implies(b)
-                );
+                assert(&Bool::and(ctx, &[&any_neighbour_flooded, &color_choosen_at_t]).implies(b));
 
                 // cluster was not flooded at t and (no neighbour was flooded at t *or* color was not choosen at t) -> cluster is *not* flooded at t + 1
                 assert(
@@ -245,7 +240,7 @@ pub fn init_solver<'ctx, T: Solver<'ctx>>(
                             ),
                         ],
                     )
-                    .implies(&b.not())
+                    .implies(&b.not()),
                 );
             }
         }
@@ -278,17 +273,24 @@ pub fn init_solver<'ctx, T: Solver<'ctx>>(
         floods: flooded_vars,
     };
 
-    SolverState { solver, model, asserts }
+    SolverState {
+        solver,
+        model,
+        asserts,
+    }
 }
 
 /// Dispatches a preconfigured solver to z3
 pub fn run_solver<'c, T: Solver<'c>>(
     state: SolverState<'c, T>,
-    t_max: usize
+    t_max: usize,
 ) -> (z3::SatResult, Option<Solution>) {
     let SolverState {
         solver,
-        model: Model { colors: color_vars, floods: flooded_vars },
+        model: Model {
+            colors: color_vars,
+            floods: flooded_vars,
+        },
         ..
     } = state;
 

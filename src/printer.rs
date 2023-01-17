@@ -1,3 +1,5 @@
+//! Pretty-printing solutions
+
 use crate::{colorizer::Colorizer, problem::Problem, solution::Solution};
 
 /// Prints a solution to a problem step by step to stdout

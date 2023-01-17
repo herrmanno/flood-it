@@ -3,14 +3,13 @@
 //! The following text is a short overview of the concept of modelling the 'Flood it' puzzle as
 //! a SMT problem.
 //!
-//! ## Idea an modelling
+//! ## Idea and modelling
 //! A problem consists of an n ⨉ n matrix `M` of integers.  
 //! The value M[r, c] denotes the color of the tile at row r and column c.  
-//! A single solver run also has a parameter `T` that describes the length of solution
+//! A single solver run also has a parameter `T` that describes the length of the solution
 //! to find.  
 //! Furthermore the parameter Cl denotes the number of clusters in M and Co denotes the number of
 //! different colors in M.
-//!
 //!
 //! ### Variables
 //! The system is built upon the following variables:
@@ -52,6 +51,7 @@
 //! - Color(i) := color of cluster_i
 //!
 
+pub mod cli;
 pub mod cluster;
 mod colorizer;
 pub mod printer;

@@ -1,3 +1,5 @@
+//! Finding clusters in a problem instance
+
 use std::collections::HashSet;
 
 use crate::problem::{Color, Problem};

@@ -1,3 +1,5 @@
+//! Solution model
+
 use std::fmt::Display;
 
 use crate::{colorizer::Colorizer, problem::Color};
@@ -5,6 +7,7 @@ use crate::{colorizer::Colorizer, problem::Color};
 /// A solution to a problem, encoded as sequence of colors
 #[derive(Clone)]
 pub struct Solution {
+    /// The sequence of colors that solves a specific problem
     pub colors: Vec<Color>,
 }
 

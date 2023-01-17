@@ -1,3 +1,5 @@
+//! Problem instance definition
+
 use crate::{
     colorizer::Colorizer,
     util::{neighbours, Point},
@@ -10,6 +12,7 @@ pub type Color = u8;
 /// A 'flood it' problem instance
 #[derive(Clone)]
 pub struct Problem {
+    /// The grid of colors, each encoded as [Color]
     pub grid: Vec<Vec<Color>>,
 }
 

@@ -1,3 +1,5 @@
+//! Utility for printing colors
+//! 
 use owo_colors::colors::xterm::*;
 use owo_colors::OwoColorize;
 
